@@ -45,25 +45,25 @@ void aTechTopSetup() {
 //------------------------------------------------------------------------------
 //ACCELEROMETER METHOD
 //------------------------------------------------------------------------------
-//unsigned long accelMonitor (unsigned long wait, unsigned long time) {
-//   if (millis() >= time) {
-//      time = millis() + wait;
-//      
-// //Analog read pins
-//      const int xPin = A1;
-//      const int yPin = A2;
-//      const int zPin = A3;
-//  
-//  //The minimum and maximum values that came from
-//  //the accelerometer while standing still
-//      int minVal = 456;//265;
-//      int maxVal = 550;//402;
-//   
-//  //Hold the caculated values
-//      double x;
-//      double y;
-//      double z;
-//    
+unsigned long accelMonitor (unsigned long wait, unsigned long time) {
+   if (millis() >= time) {
+      time = millis() + wait;
+      
+ //Analog read pins
+      const int xPin = A1;
+      const int yPin = A2;
+      const int zPin = A3;
+  
+  //The minimum and maximum values that came from
+  //the accelerometer while standing still
+      int minVal = 456;//265;
+      int maxVal = 550;//402;
+   
+  //Hold the caculated values
+      double x;
+      double y;
+      double z;
+    
 //      //Read the analog values from the accelerometer
 //          int xRead = analogRead(xPin);
 //          int yRead = analogRead(yPin);
