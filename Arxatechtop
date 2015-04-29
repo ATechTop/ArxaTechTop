@@ -1,0 +1,211 @@
+
+
+void aTechTopSetup() {
+  pinMode(BUTTON, INPUT_PULLUP); //emergency button
+  
+  pinMode(2, INPUT); // Blood Oximeter setup
+  digitalWrite(2, HIGH);
+ // attachInterrupt(0, count, RISING);
+  pinMode(redLED, OUTPUT);
+  pinMode(infLED, OUTPUT);
+  
+}
+
+//-----------------------------------------------------------------------------------
+//---------------------------------METHODS-------------------------------------------
+
+//-----------------------------------------------------------------------------------
+//TEMPERATURE SENSOR METHOD
+//-----------------------------------------------------------------------------------
+  unsigned long tempMonitor(unsigned long wait, unsigned long time) {
+  
+  float temp;
+  float tempC;
+  float tempF;
+  int tempPin = A1;
+  
+    if (millis() >= time) {
+      time = millis() + wait;
+    
+      temp = analogRead(tempPin);
+      tempC = temp*.2 + 11.73;
+      tempF = tempC*(9/5)+32;
+    sendWordPacket(TEMP_SENSOR_ID, (int)tempC);
+      #if debug
+        Serial.print("TEMPRATURE = ");
+        Serial.print(tempF);
+        Serial.print("*F");
+        Serial.println();
+      #endif
+    }
+    return time;  //Only allowed to have one value return from each method
+  }
+
+
+//------------------------------------------------------------------------------
+//ACCELEROMETER METHOD
+//------------------------------------------------------------------------------
+//unsigned long accelMonitor (unsigned long wait, unsigned long time) {
+//   if (millis() >= time) {
+//      time = millis() + wait;
+//      
+// //Analog read pins
+//      const int xPin = A1;
+//      const int yPin = A2;
+//      const int zPin = A3;
+//  
+//  //The minimum and maximum values that came from
+//  //the accelerometer while standing still
+//      int minVal = 456;//265;
+//      int maxVal = 550;//402;
+//   
+//  //Hold the caculated values
+//      double x;
+//      double y;
+//      double z;
+//    
+//      //Read the analog values from the accelerometer
+//          int xRead = analogRead(xPin);
+//          int yRead = analogRead(yPin);
+//          int zRead = analogRead(zPin);
+//      
+//      //Convert read values to degrees -90 to 90 - Needed for atan2
+//          int xAng = map(xRead, minVal, maxVal, -90, 90);
+//          int yAng = map(yRead, minVal, maxVal, -90, 90);
+//          int zAng = map(zRead, minVal, maxVal, -90, 90);
+//      
+//      //Caculate 360deg values like so: atan2(-yAng, -zAng)
+//      //atan2 outputs the value of -π to π (radians)
+//      //We are then converting the radians to degrees
+//          x = RAD_TO_DEG * (atan2(-yAng, -zAng) + PI);
+//          y = RAD_TO_DEG * (atan2(-xAng, -zAng) + PI);
+//          z = RAD_TO_DEG * (atan2(-yAng, -xAng) + PI);
+//      
+//       //Output the caculations
+//        #if debug 
+//          Serial.print("x: ");
+//          Serial.print(x);
+//          Serial.print(" | y: ");
+//          Serial.println(y);
+//        #endif
+//      
+//        if (((x >= 145 && x <= 360) || (x >= 0 && x <= 15)) && ((y >= 0 && y <= 35) || y >= 352 && y <= 360)){
+//          //When child falls on back
+//          if (down == 1){
+//            newtime = millis();
+//            timedown = newtime - lasttime;
+//            if (timedown >= 5000){
+//              Serial.print("Child has fallen back!"); }
+//            else {} }
+//          else {
+//            down = 1;
+//            lasttime = millis();  }
+//        }
+//        else if ((x >= 150 && x <= 210) && (y >= 117 && y <= 258)){
+//          //when chid falls on stomach
+//          if (down == 1){
+//            newtime = millis();
+//            timedown = newtime - lasttime;
+//            if (timedown >= 5000){
+//              Serial.print("Child has fallen forward!"); }
+//            else {} }
+//          else {
+//            down = 1;
+//            lasttime = millis();  }
+//        }
+//        else if (((x >= 0 && x <= 45) ||(x >= 205 && x <= 360)) &&(y >= 45 && y <= 107)) {
+//          //when chid falls on right side
+//          if (down == 1){
+//            newtime = millis();
+//            timedown = newtime - lasttime;
+//            if (timedown >= 5000){
+//              Serial.print("Child has fallen on right side!"); }
+//            else {} }
+//          else {
+//            down = 1;
+//            lasttime = millis();  }
+//        }
+//        else if ((x >= 0 && x <= 30)||(x >= 286  && x <= 360) &&(y >= 250 && y <= 300)) {
+//          //when chid falls on left side
+//          if (down == 1){
+//            newtime = millis();
+//            timedown = newtime - lasttime;
+//            if (timedown >= 5000){
+//              Serial.print("Child has fallen on left side!"); }
+//            else {} }
+//          else {
+//            down = 1;
+//            lasttime = millis();  }
+//          }
+//        else { down = 0;   }
+//         }
+//   return time;
+//  }
+
+
+//---------------------------------------------------------------------------------
+//PULSE SENSOR METHOD
+//---------------------------------------------------------------------------------
+//    void pulseMonitor(){
+//      #if debug
+//       Serial.print("BPM= ");
+//       Serial.println(BPM); 
+//       delay (5000);
+//      #endif
+//    }
+
+
+//---------------------------------------------------------------------------------
+//BLOOD OXIMETER METHOD
+//---------------------------------------------------------------------------------
+
+//void count()
+//  {
+//    cnt++;
+//  }
+//  
+//unsigned long bloodOxMonitor(unsigned long wait, unsigned long time)
+//  {
+//  if (millis() >= time) {
+//      time = millis() + wait;
+//        if (millis() - last >= 500){
+//        lwrcnt++;
+//        if ((lwrcnt % 2) == 0){
+//          Serial.print("Freq INF LED ");
+//          digitalWrite(infLED, LOW);
+//          digitalWrite(redLED, HIGH);
+//          redcnt++;
+//        }
+//        else {
+//          Serial.print("Freq RED LED ");
+//          digitalWrite(redLED, LOW);
+//          digitalWrite(infLED, HIGH);
+//          infcnt++;
+//        }
+//        last = millis();
+//        t = cnt;
+//        unsigned long hz = t - oldcnt; 
+//       #if debug
+//        Serial.print(hz);
+//        Serial.print("\t = "); 
+//        Serial.print((hz+50)/100);  // +50 == rounding last digit
+//        Serial.println(" mW/m2");
+//       #endif
+//        oldcnt = t; 
+//       }
+//     }
+//    return time;  
+//  }
+
+
+//---------------------------------------------------------------------------------
+//WARNING BUTTON METHOD
+//---------------------------------------------------------------------------------
+//void warningButton() {
+//    if(digitalRead(BUTTON == LOW)) {
+//    #if debug
+//      Serial.print ("WARNING");
+//    #endif
+//    }
+//  }
+
