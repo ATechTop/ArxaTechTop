@@ -1,0 +1,148 @@
+/* The following two libraries are included with the Arduino IDE  */
+#include <SPI.h>       // supports SPI serial communication and defines analog pins
+#include <EEPROM.h>
+#include <Wire.h>      // I2C support (currently not implemented)
+//#include <L3G4200D.h>  // 3-axis Gyro (currently not implemented)
+
+#define FALSE 0        // LOW
+#define TRUE  1        // HIGH
+
+/**************** Robot Configuration **************
+ * Set Rover, Pinouts, Connection Type, and Pinger *
+ ***************************************************/
+#include "pinouts_robot.h"    // replace with your pinout
+
+#define aTechTop TRUE
+#define Rosco FALSE
+#define PaperBot FALSE
+#define bluetooth FALSE      // Leonardo class rovers - Serial used for USB, Serial1 for bluetooth (i.e., USART)                             //    Set bluetooth to TRUE when using CoolTerm
+#define pinger FALSE         // FALSE if no ultrasonic sensor is used.
+#define debug  FALSE
+#define watchdog FALSE       // turn on/off watchdog timer
+
+// note: #define is a text substitution pre-processor directive
+#define BUTTON 5
+ 
+/**************** Global Variables ****************
+ * source: Found in CommunicationRobotPilot Folder  *
+ ***************************************************/
+const int16_t FLAG = -128;  // value returned by readFuelGauge when called
+                            // by sendDataon undervoltage condition
+// Timer Variable
+      unsigned long timer;        // unsigned 32-bit
+
+
+
+//Set up for Method Variables
+   unsigned long Wait = 60000;
+   unsigned long tempTime = millis() + Wait; //delay for temperature sensor
+  // unsigned long accelTime = millis() + Wait; //delay for accelerometer
+   unsigned long pulseTime = millis() + Wait; //delay for pulse sensor
+   unsigned long boTime = millis() + Wait; //delay for Blood Oximiter reading
+   
+//Temperature Initial Variables
+      float temp;
+      float tempC;
+      int tempPin = A1;
+
+//Pulse Sensor Variables
+    //  VARIABLES
+      int pulsePin = A4;                 // Pulse Sensor purple wire connected to analog pin 0
+      int blinkPin = 13;                // pin to blink led at each beat
+      
+//Variables are volatile because they are used during the interrupt service routine.
+      volatile int BPM;                   // used to hold the pulse rate
+      volatile int Signal;                // holds the incoming raw data
+      volatile int IBI = 600;             // holds the time between beats, the Inter-Beat Interval
+      volatile boolean Pulse = false;     // true when pulse wave is high, false when it's low
+      volatile boolean QS = false;        // becomes true when Arduoino finds a beat.
+      
+//Variables for Blood Oximeter
+  volatile unsigned long cnt = 0;
+  volatile unsigned long redcnt = 0;
+  volatile unsigned long infcnt = 0;
+  volatile unsigned long lwrcnt = 0;
+  volatile unsigned long avgred = 0;
+  volatile unsigned long avginf = 0;
+  float oxy;
+  unsigned long oldcnt = 0;
+  unsigned long t=0;
+  unsigned long last;
+  int redLED=4;
+  int infLED=3;
+  int bloodox;
+      
+boolean collisionDetection = FALSE;
+ 
+void setup(){
+  Serial.begin(57600);      // legacy rovers operated at 57600
+  aTechTopSetup();
+  interruptSetup();
+  #if bluetooth
+  Serial1.begin(57600);
+  #endif
+  
+  /*
+  while (!Serial) {
+    ; // wait for USB serial port to connect. Needed for Leonardo only
+  }
+  */
+  
+  timer = millis();        // telemetry  
+  // init_servos();        // Rosco uses servos
+  
+  pinMode(led, OUTPUT);    // initialize LED indicator as an output.
+ 
+  // Configure motorshield and insure motors are off. 
+  // If included in design, turn off collisionDetection
+  #if PaperBot
+    setup_TB6612FNG();    // sparkfun_TB6612FNG
+  #endif
+}
+
+void loop(){
+  
+  #if bluetooth
+  if(Serial1.available() ) commandDecoder();  // note: Leonardo does not support serialEvent() handler
+  #else
+  if(Serial.available() ) commandDecoder();
+  #endif
+  
+  #if watchdog == TRUE
+    // future: replace with watchdog timer interrupt  **** 
+    if (millis() > getNextPing()){   
+      sendWordPacket(EMERGENCY_ID,WATCHDOG_TIMEOUT);
+      
+      #if debug && bluetooth                       // if packet sent over USART=>bluetooth,  
+        Serial.print("Emergency exception 0x0");   // send duplicate data as text to
+        Serial.println(WATCHDOG_TIMEOUT,HEX);      // USB=>Arduino IDE Serial Monitor.
+      #endif 
+      
+      // ****** SLEEP PAPERBOT *******
+      
+      // ##### JEFF CHANGED
+      // Until the above-mentioned "SLEEP PAPERBOT" is implemented,
+      // let's reset to allow another ping interval to avoid the
+      // constant barrage of an exception message on every loop.
+      updateNextPing();
+      // #####
+    }
+  #endif
+  
+  
+  sendData(); // Call to send Data for Control Panel Feedback
+
+  // If using a Pinger detect a collision
+  #if pinger == TRUE
+      if (collisionDetection){
+        if (checkSonar()) {
+          // insure motors are off and turn off collisionDetection
+          stopMotors();
+          collisionDetection = FALSE;   // rover is not moving
+          // send Emergency Stop message
+        }
+      }
+  #endif
+  
+}  // end of loop
+
